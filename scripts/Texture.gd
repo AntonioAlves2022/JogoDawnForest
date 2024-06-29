@@ -7,13 +7,15 @@ var suffix:String = "Right"
 var shield_off:bool = false
 var crouch_off:bool = false
 
-export(NodePath) onready var animation_player = get_node(animation_player) as AnimationPlayer
+export (NodePath) onready var animation_player = get_node(animation_player) as AnimationPlayer
 export(NodePath) onready var player = get_node(player) as KinematicBody2D
-
+export(NodePath) onready var attack_collision = get_node(attack_collision) as CollisionShape2D
 # Função é um bloco ou trecho de código que pode ser reutilizado no programa
 func animate(direction:Vector2)->void:
 	verify_direction(direction)
-	if player.attacking or player.defending or player.crouching or player.next_to_wall():
+	if player.on_hit or player.dead:
+		hit_behavior()
+	elif player.attacking or player.defending or player.crouching or player.next_to_wall():
 		action_behavior()
 	elif direction.y !=0:
 		vertical_behavior(direction)
@@ -43,7 +45,14 @@ func verify_direction(direction:Vector2)->void:
 		player.dirction = 1
 		position = Vector2(-2, 0)
 		player.wall_ray.cast_to = Vector2(-7.5, 0)
-
+		
+func hit_behavior()->void:
+	player.set_physics_process(false)
+	if player.dead:
+		animation_player.play("Dead")
+	elif player.on_hit:
+		animation_player.play("Hit")
+	
 func horizontal_behavior(direction):
 	if direction.x != 0:
 		animation_player.play("Run")
@@ -74,4 +83,11 @@ func _on_Animation_animation_finished(anim_name:String):
 		"AttackRight":
 			player.attacking = false
 			normal_attack = false
+		"Hit":
+			player.on_hit = false
+			player.set_physics_process(true)
+			if player.defending:
+				animation_player.play("Shield")
+			if player.crouching:
+				animation_player.play("Crouch")
 			
